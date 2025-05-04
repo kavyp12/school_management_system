@@ -9,7 +9,7 @@ class CustomUser(AbstractUser):
         (4, 'PARENT'),
     )
     user_type = models.CharField(choices=USER, max_length=50, default=1)
-    profile_pic = models.ImageField(upload_to='media/profile_pic', null=True, blank=True)
+    profile_pic = models.ImageField(upload_to='profile_pic', null=True, blank=True)
 
     def __str__(self):
         return self.first_name if self.first_name else self.username

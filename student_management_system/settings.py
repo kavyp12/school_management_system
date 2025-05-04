@@ -230,6 +230,7 @@ try:
     }
     DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
     logger.info("Cloudinary storage configured successfully.")
+    logger.info(f"DEFAULT_FILE_STORAGE is set to: {DEFAULT_FILE_STORAGE}")
     # Test Cloudinary connection
     cloudinary.config(
         cloud_name=CLOUDINARY_STORAGE['CLOUD_NAME'],
@@ -242,7 +243,6 @@ except Exception as e:
     raise Exception(f"Cloudinary configuration failed: {str(e)}")
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
