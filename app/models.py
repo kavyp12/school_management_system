@@ -56,7 +56,7 @@ class Student(models.Model):
 class Parent(models.Model):
     admin = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='parents')
-    relationship = models.CharField(max_length=50)
+    relationship = models.CharField(max_length=50)  # e.g., Father, Mother
     phone_number = models.CharField(max_length=15, blank=True)
     address = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -178,7 +178,7 @@ class Attendance(models.Model):
 class Attendance_Report(models.Model):
     student_id = models.ForeignKey(Student, on_delete=models.CASCADE)
     attendance_id = models.ForeignKey(Attendance, on_delete=models.CASCADE)
-    status = models.IntegerField(default=0)
+    status = models.IntegerField(default=0)  # 0 for absent, 1 for present
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
