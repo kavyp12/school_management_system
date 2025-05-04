@@ -1,29 +1,23 @@
 {
-    "version": 2,
-    "builds": [
-      {
-        "src": "student_management_system/wsgi.py",
-        "use": "@vercel/python",
-        "config": {
-          "runtime": "python3.12"
-        }
-      },
-      {
-        "src": "build_files.sh",
-        "use": "@vercel/static-build",
-        "config": {
-          "distDir": "staticfiles"
-        }
+  "version": 2,
+  "builds": [
+    {
+      "src": "student_management_system/wsgi.py",
+      "use": "@vercel/python",
+      "config": {
+        "runtime": "python3.12",
+        "buildCommand": "bash build_files.sh"
       }
-    ],
-    "routes": [
-      {
-        "src": "/static/(.*)",
-        "dest": "/static/$1"
-      },
-      {
-        "src": "/(.*)",
-        "dest": "student_management_system/wsgi.py"
-      }
-    ]
-  }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/static/(.*)",
+      "dest": "staticfiles/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "student_management_system/wsgi.py"
+    }
+  ]
+}
