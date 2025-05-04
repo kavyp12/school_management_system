@@ -1,0 +1,149 @@
+name of the school:
+academic year:
+
+periods per day:      [bell times /rename periods]
+
+number of days:       [rename days]
+
+              weekend [saturday-sunday ]
+
+
+
+subject:
+
+[new button]
+
+[edit button]
+
+[remove button]
+
+[lessons button]
+
+
+
+
+[new buttone]
+
+|
+|
+\/
+
+subject tital:
+short form:
+
+   [custome field]
+
+
+colour picture   -> [change]
+
+
+ classrooms
+
+[classroom]
+
+set for all  lesson of teh subject:
+
+
+number:
+
+ 
+
+classes:
+
+
+[new button]
+
+[edit button]
+
+[remove button]
+
+[lessons button]
+
+
+
+class Name:
+short form:
+    
+
+       [custome field]
+
+colour  -> change
+
+class teacher -> change
+
+
+grade -> 
+
+number->
+
+
+class room
+
+
+
+teacher:
+
+[new button]
+
+[edit button]
+
+[remove button]
+
+[lessons button]
+
+
+
+last name:
+first name:
+
+short :         [male]
+teachers contract:        [optional]
+
+email3A
+phone:
+title:
+number:
+
+class teacher for the class [change]
+  
+classrooms    [classrooms]
+
+colour:
+            [change]
+
+[custome fields]
+
+
+
+in [leasoon button]
+
+||
+\/
+
+ 
+techaer name: [drop down]
+
+subject:  [drop down]
+
+classs:  [drop down]
+
+
+leasson /week:          [ex.single drop down]
+[drop down]  
+
+
+[tick box]home classroom      [tick box]teacher's classroom
+[tick box] shared room         [tick box] subject's classroom
+
+[other available classs room ]  [more classroom ]
+
+
+after all this there should be verification that is that any error or not if yes identify like assigning the teacher or like that:
+
+
+and than there is a generate button that generate the time table after this ;
+
+i take inspiration from the eSc softwer which use to generate time table so now analyize all this and also add ur thoghts in it and give me what should i add :
+
+
+
