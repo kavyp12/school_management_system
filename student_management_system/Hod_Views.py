@@ -44,6 +44,7 @@ def ADD_STUDENT(request):
         course_id = request.POST.get('course_id')
         session_year_id = request.POST.get('session_year_id')
         semester = request.POST.get('semester')
+
         if CustomUser.objects.filter(email=email).exists():
             messages.warning(request, 'Email Is Already Taken')
             return redirect('add_student')
@@ -53,30 +54,37 @@ def ADD_STUDENT(request):
         if Student.objects.filter(enrollment_no=enrollment_no).exists():
             messages.warning(request, 'Enrollment Number Is Already Taken')
             return redirect('add_student')
-        user = CustomUser(
-            first_name=full_name,
-            last_name='',
-            username=username,
-            email=email,
-            profile_pic=profile_pic,
-            user_type=3
-        )
-        user.set_password(password)
-        user.save()
-        course = Course.objects.get(id=course_id)
-        session_year = Session_Year.objects.get(id=session_year_id)
-        student = Student(
-            admin=user,
-            address=address,
-            session_year_id=session_year,
-            course_id=course,
-            gender=gender,
-            enrollment_no=enrollment_no,
-            semester=semester if semester else None
-        )
-        student.save()
-        messages.success(request, f"{user.first_name} Successfully Added!")
+
+        try:
+            user = CustomUser(
+                first_name=full_name,
+                last_name='',
+                username=username,
+                email=email,
+                user_type=3
+            )
+            if profile_pic:
+                user.profile_pic = profile_pic
+            user.set_password(password)
+            user.save()
+
+            course = Course.objects.get(id=course_id)
+            session_year = Session_Year.objects.get(id=session_year_id)
+            student = Student(
+                admin=user,
+                address=address,
+                session_year_id=session_year,
+                course_id=course,
+                gender=gender,
+                enrollment_no=enrollment_no,
+                semester=semester if semester else None
+            )
+            student.save()
+            messages.success(request, f"{user.first_name} Successfully Added!")
+        except Exception as e:
+            messages.error(request, f"Error Adding Student: {str(e)}")
         return redirect('add_student')
+
     context = {
         'course': course,
         'session_year': session_year,
@@ -118,50 +126,59 @@ def UPDATE_STUDENT(request):
         course_id = request.POST.get('course_id')
         session_year_id = request.POST.get('session_year_id')
         semester = request.POST.get('semester')
-        
-        user = CustomUser.objects.get(id=student_id)
-        user.first_name = full_name
-        user.last_name = ''
-        user.email = email
-        user.username = username
-        if password and password.strip():
-            user.set_password(password)
-        if profile_pic:
-            user.profile_pic = profile_pic
-        user.save()
-        
-        student = Student.objects.get(admin=student_id)
-        if enrollment_no != student.enrollment_no and Student.objects.filter(enrollment_no=enrollment_no).exists():
-            messages.warning(request, 'Enrollment Number Is Already Taken')
-            return redirect('edit_student', id=student.id)
-        
-        student.address = address
-        student.gender = gender
-        student.enrollment_no = enrollment_no
-        course = Course.objects.get(id=course_id)
-        student.course_id = course
-        session_year = Session_Year.objects.get(id=session_year_id)
-        student.session_year_id = session_year
-        student.semester = int(semester) if semester else None
-        student.save()
-        messages.success(request, 'Record Successfully Updated!')
+
+        try:
+            user = CustomUser.objects.get(id=student_id)
+            user.first_name = full_name
+            user.last_name = ''
+            user.email = email
+            user.username = username
+            if password and password.strip():
+                user.set_password(password)
+            if profile_pic:
+                user.profile_pic = profile_pic
+            user.save()
+
+            student = Student.objects.get(admin=student_id)
+            if enrollment_no != student.enrollment_no and Student.objects.filter(enrollment_no=enrollment_no).exists():
+                messages.warning(request, 'Enrollment Number Is Already Taken')
+                return redirect('edit_student', id=student.id)
+
+            student.address = address
+            student.gender = gender
+            student.enrollment_no = enrollment_no
+            course = Course.objects.get(id=course_id)
+            student.course_id = course
+            session_year = Session_Year.objects.get(id=session_year_id)
+            student.session_year_id = session_year
+            student.semester = int(semester) if semester else None
+            student.save()
+            messages.success(request, 'Record Successfully Updated!')
+        except Exception as e:
+            messages.error(request, f"Error Updating Student: {str(e)}")
         return redirect('view_student')
     return render(request, 'Hod/edit_student.html')
 
 @login_required(login_url='/')
 def DELETE_STUDENT(request, admin):
-    student = CustomUser.objects.get(id=admin)
-    student.delete()
-    messages.success(request, 'Record Successfully Deleted!')
+    try:
+        student = CustomUser.objects.get(id=admin)
+        student.delete()
+        messages.success(request, 'Record Successfully Deleted!')
+    except Exception as e:
+        messages.error(request, f"Error Deleting Student: {str(e)}")
     return redirect('view_student')
 
 @login_required(login_url='/')
 def ADD_COURSE(request):
     if request.method == "POST":
         course_name = request.POST.get('course_name')
-        course = Course(name=course_name)
-        course.save()
-        messages.success(request, 'Course Successfully Created')
+        try:
+            course = Course(name=course_name)
+            course.save()
+            messages.success(request, 'Course Successfully Created')
+        except Exception as e:
+            messages.error(request, f"Error Adding Course: {str(e)}")
         return redirect('view_course')
     return render(request, 'Hod/add_course.html')
 
@@ -186,18 +203,24 @@ def UPDATE_COURSE(request):
     if request.method == "POST":
         name = request.POST.get('name')
         course_id = request.POST.get('course_id')
-        course = Course.objects.get(id=course_id)
-        course.name = name
-        course.save()
-        messages.success(request, 'Course Successfully Updated')
+        try:
+            course = Course.objects.get(id=course_id)
+            course.name = name
+            course.save()
+            messages.success(request, 'Course Successfully Updated')
+        except Exception as e:
+            messages.error(request, f"Error Updating Course: {str(e)}")
         return redirect('view_course')
     return render(request, 'Hod/edit_course.html')
 
 @login_required(login_url='/')
 def DELETE_COURSE(request, id):
-    course = Course.objects.get(id=id)
-    course.delete()
-    messages.success(request, 'Course Successfully Deleted')
+    try:
+        course = Course.objects.get(id=id)
+        course.delete()
+        messages.success(request, 'Course Successfully Deleted')
+    except Exception as e:
+        messages.error(request, f"Error Deleting Course: {str(e)}")
     return redirect('view_course')
 
 @login_required(login_url='/')
@@ -215,6 +238,7 @@ def ADD_STAFF(request):
         gender = request.POST.get('gender')
         course_id = request.POST.get('course_id')
         subject_id = request.POST.get('subject_id')
+
         if CustomUser.objects.filter(email=email).exists():
             messages.warning(request, 'Email Is Already Taken!')
             return redirect('add_staff')
@@ -224,31 +248,40 @@ def ADD_STAFF(request):
         if subject_id and Staff.objects.filter(subjects__id=subject_id).exists():
             messages.error(request, 'This subject is already assigned to another staff member.')
             return redirect('add_staff')
-        user = CustomUser(
-            first_name=first_name,
-            last_name=last_name,
-            email=email,
-            username=username,
-            profile_pic=profile_pic,
-            user_type=2
-        )
-        user.set_password(password)
-        user.save()
-        staff = Staff(
-            admin=user,
-            address=address,
-            gender=gender
-        )
-        staff.save()
-        if subject_id:
-            try:
-                subject = Subject.objects.get(id=subject_id)
-                staff.subjects.add(subject)
-            except Subject.DoesNotExist:
-                messages.error(request, f"Subject with ID {subject_id} does not exist.")
-                return redirect('add_staff')
-        messages.success(request, 'Staff Successfully Added!')
+
+        try:
+            user = CustomUser(
+                first_name=first_name,
+                last_name=last_name,
+                email=email,
+                username=username,
+                user_type=2
+            )
+            if profile_pic:
+                user.profile_pic = profile_pic
+            user.set_password(password)
+            user.save()
+
+            staff = Staff(
+                admin=user,
+                address=address,
+                gender=gender
+            )
+            staff.save()
+
+            if subject_id:
+                try:
+                    subject = Subject.objects.get(id=subject_id)
+                    staff.subjects.add(subject)
+                except Subject.DoesNotExist:
+                    messages.error(request, f"Subject with ID {subject_id} does not exist.")
+                    return redirect('add_staff')
+
+            messages.success(request, 'Staff Successfully Added!')
+        except Exception as e:
+            messages.error(request, f"Error Adding Staff: {str(e)}")
         return redirect('add_staff')
+
     context = {
         'subjects': subjects,
         'courses': courses,
@@ -289,42 +322,53 @@ def UPDATE_STAFF(request):
         gender = request.POST.get('gender')
         course_id = request.POST.get('course_id')
         subject_id = request.POST.get('subject_id')
-        user = CustomUser.objects.get(id=staff_id)
-        user.username = username
-        user.first_name = first_name
-        user.last_name = last_name
-        user.email = email
-        if password and password.strip():
-            user.set_password(password)
-        if profile_pic:
-            user.profile_pic = profile_pic
-        user.save()
-        staff = Staff.objects.get(admin=staff_id)
-        staff.gender = gender
-        staff.address = address
-        if subject_id:
-            existing_staff = Staff.objects.filter(subjects__id=subject_id).exclude(id=staff.id)
-            if existing_staff.exists():
-                messages.error(request, 'This subject is already assigned to another staff member.')
-                return redirect('edit_staff', id=staff.id)
-        staff.subjects.clear()
-        if subject_id:
-            try:
-                subject = Subject.objects.get(id=subject_id)
-                staff.subjects.add(subject)
-            except Subject.DoesNotExist:
-                messages.error(request, f"Subject with ID {subject_id} does not exist.")
-                return redirect('edit_staff', id=staff.id)
-        staff.save()
-        messages.success(request, 'Staff Successfully Updated')
+
+        try:
+            user = CustomUser.objects.get(id=staff_id)
+            user.username = username
+            user.first_name = first_name
+            user.last_name = last_name
+            user.email = email
+            if password and password.strip():
+                user.set_password(password)
+            if profile_pic:
+                user.profile_pic = profile_pic
+            user.save()
+
+            staff = Staff.objects.get(admin=staff_id)
+            staff.gender = gender
+            staff.address = address
+
+            if subject_id:
+                existing_staff = Staff.objects.filter(subjects__id=subject_id).exclude(id=staff.id)
+                if existing_staff.exists():
+                    messages.error(request, 'This subject is already assigned to another staff member.')
+                    return redirect('edit_staff', id=staff.id)
+
+            staff.subjects.clear()
+            if subject_id:
+                try:
+                    subject = Subject.objects.get(id=subject_id)
+                    staff.subjects.add(subject)
+                except Subject.DoesNotExist:
+                    messages.error(request, f"Subject with ID {subject_id} does not exist.")
+                    return redirect('edit_staff', id=staff.id)
+
+            staff.save()
+            messages.success(request, 'Staff Successfully Updated')
+        except Exception as e:
+            messages.error(request, f"Error Updating Staff: {str(e)}")
         return redirect('view_staff')
     return render(request, 'Hod/edit_staff.html')
 
 @login_required(login_url='/')
 def DELETE_STAFF(request, admin):
-    staff = CustomUser.objects.get(id=admin)
-    staff.delete()
-    messages.success(request, 'Record Successfully Deleted!')
+    try:
+        staff = CustomUser.objects.get(id=admin)
+        staff.delete()
+        messages.success(request, 'Record Successfully Deleted!')
+    except Exception as e:
+        messages.error(request, f"Error Deleting Staff: {str(e)}")
     return redirect('view_staff')
 
 @login_required(login_url='/')
@@ -341,33 +385,41 @@ def ADD_PARENT(request):
         relationship = request.POST.get('relationship')
         phone_number = request.POST.get('phone_number')
         address = request.POST.get('address')
+
         if CustomUser.objects.filter(email=email).exists():
             messages.warning(request, 'Email Is Already Taken!')
             return redirect('add_parent')
         if CustomUser.objects.filter(username=username).exists():
             messages.warning(request, 'Username Is Already Taken!')
             return redirect('add_parent')
-        user = CustomUser(
-            first_name=first_name,
-            last_name=last_name,
-            email=email,
-            username=username,
-            profile_pic=profile_pic,
-            user_type=4
-        )
-        user.set_password(password)
-        user.save()
-        student = Student.objects.get(id=student_id)
-        parent = Parent(
-            admin=user,
-            student=student,
-            relationship=relationship,
-            phone_number=phone_number,
-            address=address
-        )
-        parent.save()
-        messages.success(request, 'Parent Added Successfully!')
+
+        try:
+            user = CustomUser(
+                first_name=first_name,
+                last_name=last_name,
+                email=email,
+                username=username,
+                user_type=4
+            )
+            if profile_pic:
+                user.profile_pic = profile_pic
+            user.set_password(password)
+            user.save()
+
+            student = Student.objects.get(id=student_id)
+            parent = Parent(
+                admin=user,
+                student=student,
+                relationship=relationship,
+                phone_number=phone_number,
+                address=address
+            )
+            parent.save()
+            messages.success(request, 'Parent Added Successfully!')
+        except Exception as e:
+            messages.error(request, f"Error Adding Parent: {str(e)}")
         return redirect('add_parent')
+
     context = {
         'students': students,
     }
@@ -405,32 +457,40 @@ def UPDATE_PARENT(request):
         relationship = request.POST.get('relationship')
         phone_number = request.POST.get('phone_number')
         address = request.POST.get('address')
-        user = CustomUser.objects.get(id=parent_id)
-        user.first_name = first_name
-        user.last_name = last_name
-        user.email = email
-        user.username = username
-        if password and password.strip():
-            user.set_password(password)
-        if profile_pic:
-            user.profile_pic = profile_pic
-        user.save()
-        parent = Parent.objects.get(admin=parent_id)
-        student = Student.objects.get(id=student_id)
-        parent.student = student
-        parent.relationship = relationship
-        parent.phone_number = phone_number
-        parent.address = address
-        parent.save()
-        messages.success(request, 'Parent Updated Successfully!')
+
+        try:
+            user = CustomUser.objects.get(id=parent_id)
+            user.first_name = first_name
+            user.last_name = last_name
+            user.email = email
+            user.username = username
+            if password and password.strip():
+                user.set_password(password)
+            if profile_pic:
+                user.profile_pic = profile_pic
+            user.save()
+
+            parent = Parent.objects.get(admin=parent_id)
+            student = Student.objects.get(id=student_id)
+            parent.student = student
+            parent.relationship = relationship
+            parent.phone_number = phone_number
+            parent.address = address
+            parent.save()
+            messages.success(request, 'Parent Updated Successfully!')
+        except Exception as e:
+            messages.error(request, f"Error Updating Parent: {str(e)}")
         return redirect('view_parent')
     return render(request, 'Hod/edit_parent.html')
 
 @login_required(login_url='/')
 def DELETE_PARENT(request, admin):
-    parent = CustomUser.objects.get(id=admin)
-    parent.delete()
-    messages.success(request, 'Parent Deleted Successfully!')
+    try:
+        parent = CustomUser.objects.get(id=admin)
+        parent.delete()
+        messages.success(request, 'Parent Deleted Successfully!')
+    except Exception as e:
+        messages.error(request, f"Error Deleting Parent: {str(e)}")
     return redirect('view_parent')
 
 @login_required(login_url='/')
@@ -441,6 +501,7 @@ def ADD_SUBJECT(request):
         subject_code = request.POST.get('subject_code')
         course_id = request.POST.get('course_id')
         credit = request.POST.get('credit')
+
         try:
             course = Course.objects.get(id=course_id)
             if subject_code and Subject.objects.filter(subject_code=subject_code).exists():
@@ -454,10 +515,10 @@ def ADD_SUBJECT(request):
             )
             subject.save()
             messages.success(request, 'Subject Successfully Added!')
-            return redirect('add_subject')
-        except Course.DoesNotExist:
-            messages.error(request, "Selected course does not exist.")
-            return redirect('add_subject')
+        except Exception as e:
+            messages.error(request, f"Error Adding Subject: {str(e)}")
+        return redirect('add_subject')
+
     context = {
         'courses': courses,
     }
@@ -489,6 +550,7 @@ def UPDATE_SUBJECT(request):
         subject_code = request.POST.get('subject_code')
         course_id = request.POST.get('course_id')
         credit = request.POST.get('credit')
+
         try:
             course = Course.objects.get(id=course_id)
             subject = Subject.objects.get(id=subject_id)
@@ -501,20 +563,19 @@ def UPDATE_SUBJECT(request):
             subject.credit = int(credit) if credit else None
             subject.save()
             messages.success(request, 'Subject Successfully Updated!')
-            return redirect('view_subject')
-        except Course.DoesNotExist:
-            messages.error(request, "Selected course does not exist.")
-            return redirect('edit_subject', id=subject_id)
-        except Subject.DoesNotExist:
-            messages.error(request, "Subject does not exist.")
-            return redirect('view_subject')
+        except Exception as e:
+            messages.error(request, f"Error Updating Subject: {str(e)}")
+        return redirect('view_subject')
     return render(request, 'Hod/edit_subject.html')
 
 @login_required(login_url='/')
 def DELETE_SUBJECT(request, id):
-    subject = Subject.objects.get(id=id)
-    subject.delete()
-    messages.success(request, 'Subject Successfully Deleted!')
+    try:
+        subject = Subject.objects.get(id=id)
+        subject.delete()
+        messages.success(request, 'Subject Successfully Deleted!')
+    except Exception as e:
+        messages.error(request, f"Error Deleting Subject: {str(e)}")
     return redirect('view_subject')
 
 @login_required(login_url='/')
@@ -522,12 +583,15 @@ def ADD_SESSION(request):
     if request.method == "POST":
         session_year_start = request.POST.get('session_year_start')
         session_year_end = request.POST.get('session_year_end')
-        session = Session_Year(
-            session_start=session_year_start,
-            session_end=session_year_end,
-        )
-        session.save()
-        messages.success(request, 'Session Successfully Created')
+        try:
+            session = Session_Year(
+                session_start=session_year_start,
+                session_end=session_year_end,
+            )
+            session.save()
+            messages.success(request, 'Session Successfully Created')
+        except Exception as e:
+            messages.error(request, f"Error Adding Session: {str(e)}")
         return redirect('add_session')
     return render(request, 'Hod/add_session.html')
 
@@ -553,19 +617,25 @@ def UPDATE_SESSION(request):
         session_id = request.POST.get('session_id')
         session_year_start = request.POST.get('session_year_start')
         session_year_end = request.POST.get('session_year_end')
-        session = Session_Year.objects.get(id=session_id)
-        session.session_start = session_year_start
-        session.session_end = session_year_end
-        session.save()
-        messages.success(request, 'Session Successfully Updated!')
+        try:
+            session = Session_Year.objects.get(id=session_id)
+            session.session_start = session_year_start
+            session.session_end = session_year_end
+            session.save()
+            messages.success(request, 'Session Successfully Updated!')
+        except Exception as e:
+            messages.error(request, f"Error Updating Session: {str(e)}")
         return redirect('view_session')
     return render(request, 'Hod/edit_session.html')
 
 @login_required(login_url='/')
 def DELETE_SESSION(request, id):
-    session = Session_Year.objects.get(id=id)
-    session.delete()
-    messages.success(request, 'Session Successfully Deleted!')
+    try:
+        session = Session_Year.objects.get(id=id)
+        session.delete()
+        messages.success(request, 'Session Successfully Deleted!')
+    except Exception as e:
+        messages.error(request, f"Error Deleting Session: {str(e)}")
     return redirect('view_session')
 
 @login_required(login_url='/')
@@ -583,14 +653,18 @@ def SAVE_STAFF_NOTIFICATION(request):
     if request.method == "POST":
         staff_id = request.POST.get('staff_id')
         message = request.POST.get('message')
-        staff = Staff.objects.get(admin=staff_id)
-        notification = Staff_Notification(
-            staff_id=staff,
-            message=message,
-        )
-        notification.save()
-        messages.success(request, 'Notification Successfully Sent')
+        try:
+            staff = Staff.objects.get(admin=staff_id)
+            notification = Staff_Notification(
+                staff_id=staff,
+                message=message,
+            )
+            notification.save()
+            messages.success(request, 'Notification Successfully Sent')
+        except Exception as e:
+            messages.error(request, f"Error Sending Notification: {str(e)}")
         return redirect('staff_send_notification')
+    return redirect('staff_send_notification')
 
 @login_required(login_url='/')
 def STAFF_LEAVE_VIEW(request):
@@ -602,26 +676,32 @@ def STAFF_LEAVE_VIEW(request):
 
 @login_required(login_url='/')
 def STAFF_APPROVE_LEAVE(request, id):
-    leave = Staff_leave.objects.get(id=id)
-    leave.status = 1
-    leave.save()
-    staff = leave.staff_id
-    message = f"Your leave application for {leave.date} has been approved."
-    notification = Staff_Notification(staff_id=staff, message=message)
-    notification.save()
-    messages.success(request, 'Leave Approved and Notification Sent!')
+    try:
+        leave = Staff_leave.objects.get(id=id)
+        leave.status = 1
+        leave.save()
+        staff = leave.staff_id
+        message = f"Your leave application for {leave.date} has been approved."
+        notification = Staff_Notification(staff_id=staff, message=message)
+        notification.save()
+        messages.success(request, 'Leave Approved and Notification Sent!')
+    except Exception as e:
+        messages.error(request, f"Error Approving Leave: {str(e)}")
     return redirect('staff_leave_view')
 
 @login_required(login_url='/')
 def STAFF_DISAPPROVE_LEAVE(request, id):
-    leave = Staff_leave.objects.get(id=id)
-    leave.status = 2
-    leave.save()
-    staff = leave.staff_id
-    message = f"Your leave application for {leave.date} has been rejected."
-    notification = Staff_Notification(staff_id=staff, message=message)
-    notification.save()
-    messages.success(request, 'Leave Disapproved and Notification Sent!')
+    try:
+        leave = Staff_leave.objects.get(id=id)
+        leave.status = 2
+        leave.save()
+        staff = leave.staff_id
+        message = f"Your leave application for {leave.date} has been rejected."
+        notification = Staff_Notification(staff_id=staff, message=message)
+        notification.save()
+        messages.success(request, 'Leave Disapproved and Notification Sent!')
+    except Exception as e:
+        messages.error(request, f"Error Disapproving Leave: {str(e)}")
     return redirect('staff_leave_view')
 
 @login_required(login_url='/')
@@ -634,26 +714,32 @@ def STUDENT_LEAVE_VIEW(request):
 
 @login_required(login_url='/')
 def STUDENT_APPROVE_LEAVE(request, id):
-    student_leave = Student_leave.objects.get(id=id)
-    student_leave.status = 1
-    student_leave.save()
-    student = student_leave.student_id
-    message = f"Your leave application for {student_leave.date} has been approved."
-    notification = Student_Notification(student_id=student, message=message)
-    notification.save()
-    messages.success(request, 'Leave Approved and Notification Sent!')
+    try:
+        student_leave = Student_leave.objects.get(id=id)
+        student_leave.status = 1
+        student_leave.save()
+        student = student_leave.student_id
+        message = f"Your leave application for {student_leave.date} has been approved."
+        notification = Student_Notification(student_id=student, message=message)
+        notification.save()
+        messages.success(request, 'Leave Approved and Notification Sent!')
+    except Exception as e:
+        messages.error(request, f"Error Approving Leave: {str(e)}")
     return redirect('student_leave_view')
 
 @login_required(login_url='/')
 def STUDENT_DISAPPROVE_LEAVE(request, id):
-    student_leave = Student_leave.objects.get(id=id)
-    student_leave.status = 2
-    student_leave.save()
-    student = student_leave.student_id
-    message = f"Your leave application for {student_leave.date} has been rejected."
-    notification = Student_Notification(student_id=student, message=message)
-    notification.save()
-    messages.success(request, 'Leave Disapproved and Notification Sent!')
+    try:
+        student_leave = Student_leave.objects.get(id=id)
+        student_leave.status = 2
+        student_leave.save()
+        student = student_leave.student_id
+        message = f"Your leave application for {student_leave.date} has been rejected."
+        notification = Student_Notification(student_id=student, message=message)
+        notification.save()
+        messages.success(request, 'Leave Disapproved and Notification Sent!')
+    except Exception as e:
+        messages.error(request, f"Error Disapproving Leave: {str(e)}")
     return redirect('student_leave_view')
 
 @login_required(login_url='/')
@@ -677,22 +763,15 @@ def STAFF_FEEDBACK_SAVE(request):
             feedback.status = 1
             feedback.save()
             messages.success(request, 'Reply Sent Successfully!')
-            feedback_list = Staff_Feedback.objects.all()
-            feedback_history = Staff_Feedback.objects.all().order_by('-id')[:5]
-            context = {
-                'feedback': feedback_list,
-                'feedback_history': feedback_history,
-            }
-            return render(request, 'Hod/staff_feedback.html', context)
         except Staff_Feedback.DoesNotExist:
             messages.error(request, 'Feedback not found.')
-            feedback_list = Staff_Feedback.objects.all()
-            feedback_history = Staff_Feedback.objects.all().order_by('-id')[:5]
-            context = {
-                'feedback': feedback_list,
-                'feedback_history': feedback_history,
-            }
-            return render(request, 'Hod/staff_feedback.html', context)
+        feedback_list = Staff_Feedback.objects.all()
+        feedback_history = Staff_Feedback.objects.all().order_by('-id')[:5]
+        context = {
+            'feedback': feedback_list,
+            'feedback_history': feedback_history,
+        }
+        return render(request, 'Hod/staff_feedback.html', context)
     return redirect('staff_feedback')
 
 @login_required(login_url='/')
@@ -716,22 +795,15 @@ def REPLY_STUDENT_FEEDBACK(request):
             feedback.status = 1
             feedback.save()
             messages.success(request, 'Reply Sent Successfully!')
-            feedback_list = Student_Feedback.objects.all()
-            feedback_history = Student_Feedback.objects.all().order_by('-id')[:5]
-            context = {
-                'feedback': feedback_list,
-                'feedback_history': feedback_history,
-            }
-            return render(request, 'Hod/student_feedback.html', context)
         except Student_Feedback.DoesNotExist:
             messages.error(request, 'Feedback not found.')
-            feedback_list = Student_Feedback.objects.all()
-            feedback_history = Student_Feedback.objects.all().order_by('-id')[:5]
-            context = {
-                'feedback': feedback_list,
-                'feedback_history': feedback_history,
-            }
-            return render(request, 'Hod/student_feedback.html', context)
+        feedback_list = Student_Feedback.objects.all()
+        feedback_history = Student_Feedback.objects.all().order_by('-id')[:5]
+        context = {
+            'feedback': feedback_list,
+            'feedback_history': feedback_history,
+        }
+        return render(request, 'Hod/student_feedback.html', context)
     return redirect('student_feedback')
 
 @login_required(login_url='/')
@@ -749,14 +821,18 @@ def SAVE_STUDENT_NOTIFICATION(request):
     if request.method == "POST":
         message = request.POST.get('message')
         student_id = request.POST.get('student_id')
-        student = Student.objects.get(admin=student_id)
-        stud_notification = Student_Notification(
-            student_id=student,
-            message=message,
-        )
-        stud_notification.save()
-        messages.success(request, 'Student Notification Successfully Sent')
+        try:
+            student = Student.objects.get(admin=student_id)
+            stud_notification = Student_Notification(
+                student_id=student,
+                message=message,
+            )
+            stud_notification.save()
+            messages.success(request, 'Student Notification Successfully Sent')
+        except Exception as e:
+            messages.error(request, f"Error Sending Notification: {str(e)}")
         return redirect('student_send_notification')
+    return redirect('student_send_notification')
 
 @login_required(login_url='/')
 def VIEW_ATTENDANCE(request):
