@@ -1,6 +1,5 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from cloudinary.models import CloudinaryField  # Import CloudinaryField
 
 class CustomUser(AbstractUser):
     USER = (
@@ -10,7 +9,7 @@ class CustomUser(AbstractUser):
         (4, 'PARENT'),
     )
     user_type = models.CharField(choices=USER, max_length=50, default=1)
-    profile_pic = CloudinaryField('image', folder='profile_pics', null=True, blank=True)  # Use CloudinaryField
+    profile_pic = models.ImageField(upload_to='profile_pic', null=True, blank=True)
 
     def __str__(self):
         return self.first_name if self.first_name else self.username
