@@ -4,7 +4,6 @@ from app.models import Course, Session_Year, CustomUser, Student, Staff, Subject
 from django.contrib import messages
 from django.http import JsonResponse
 import logging
-from cloudinary.uploader import upload  # Import for test view
 
 logger = logging.getLogger(__name__)
 
@@ -70,11 +69,11 @@ def ADD_STUDENT(request):
                 user_type=3
             )
             if profile_pic:
-                logger.info(f"Uploading profile_pic for user: {username}, size: {profile_pic.size}")
-                user.profile_pic = profile_pic  # Cloudinary storage handles upload
+                logger.info(f"Processing profile_pic upload for user: {username}")
+                user.profile_pic = profile_pic  # Cloudinary storage handles this
             user.set_password(password)
             user.save()
-            logger.info(f"CustomUser {username} saved successfully, profile_pic: {user.profile_pic.url if user.profile_pic else 'None'}")
+            logger.info(f"CustomUser {username} saved successfully")
 
             # Create Student
             course = Course.objects.get(id=course_id)
@@ -149,10 +148,10 @@ def UPDATE_STUDENT(request):
             if password and password.strip():
                 user.set_password(password)
             if profile_pic:
-                logger.info(f"Uploading profile_pic for user: {username}, size: {profile_pic.size}")
-                user.profile_pic = profile_pic  # Cloudinary storage handles upload
+                logger.info(f"Updating profile_pic for user: {username}")
+                user.profile_pic = profile_pic
             user.save()
-            logger.info(f"CustomUser {username} updated successfully, profile_pic: {user.profile_pic.url if user.profile_pic else 'None'}")
+            logger.info(f"CustomUser {username} updated successfully")
             
             student = Student.objects.get(admin=student_id)
             if enrollment_no != student.enrollment_no and Student.objects.filter(enrollment_no=enrollment_no).exists():
@@ -279,11 +278,10 @@ def ADD_STAFF(request):
                 user_type=2
             )
             if profile_pic:
-                logger.info(f"Uploading profile_pic for user: {username}, size: {profile_pic.size}")
-                user.profile_pic = profile_pic  # Cloudinary storage handles upload
+                logger.info(f"Processing profile_pic upload for user: {username}")
+                user.profile_pic = profile_pic
             user.set_password(password)
             user.save()
-            logger.info(f"CustomUser {username} saved successfully, profile_pic: {user.profile_pic.url if user.profile_pic else 'None'}")
             staff = Staff(
                 admin=user,
                 address=address,
@@ -346,10 +344,9 @@ def UPDATE_STAFF(request):
             if password and password.strip():
                 user.set_password(password)
             if profile_pic:
-                logger.info(f"Uploading profile_pic for user: {username}, size: {profile_pic.size}")
-                user.profile_pic = profile_pic  # Cloudinary storage handles upload
+                logger.info(f"Updating profile_pic for user: {username}")
+                user.profile_pic = profile_pic
             user.save()
-            logger.info(f"CustomUser {username} updated successfully, profile_pic: {user.profile_pic.url if user.profile_pic else 'None'}")
             staff = Staff.objects.get(admin=staff_id)
             staff.address = address
             staff.gender = gender
@@ -558,11 +555,10 @@ def ADD_PARENT(request):
                 user_type=4
             )
             if profile_pic:
-                logger.info(f"Uploading profile_pic for user: {username}, size: {profile_pic.size}")
-                user.profile_pic = profile_pic  # Cloudinary storage handles upload
+                logger.info(f"Processing profile_pic upload for user: {username}")
+                user.profile_pic = profile_pic
             user.set_password(password)
             user.save()
-            logger.info(f"CustomUser {username} saved successfully, profile_pic: {user.profile_pic.url if user.profile_pic else 'None'}")
             student = Student.objects.get(id=student_id)
             parent = Parent(
                 admin=user,
@@ -623,10 +619,9 @@ def UPDATE_PARENT(request):
             if password and password.strip():
                 user.set_password(password)
             if profile_pic:
-                logger.info(f"Uploading profile_pic for user: {username}, size: {profile_pic.size}")
-                user.profile_pic = profile_pic  # Cloudinary storage handles upload
+                logger.info(f"Updating profile_pic for user: {username}")
+                user.profile_pic = profile_pic
             user.save()
-            logger.info(f"CustomUser {username} updated successfully, profile_pic: {user.profile_pic.url if user.profile_pic else 'None'}")
             parent = Parent.objects.get(admin=parent_id)
             parent.phone_number = phone_number
             parent.address = address
@@ -832,14 +827,3 @@ def get_subjects_by_course(request):
     course_id = request.GET.get('course_id')
     subjects = Subject.objects.filter(course_id=course_id).values('id', 'name')
     return JsonResponse(list(subjects), safe=False)
-
-def test_cloudinary_upload(request):
-    if request.method == "POST" and request.FILES.get("file"):
-        try:
-            file = request.FILES["file"]
-            upload_result = upload(file, folder="test_uploads")
-            return HttpResponse(f"Uploaded to Cloudinary: {upload_result['secure_url']}")
-        except Exception as e:
-            logger.error(f"Cloudinary upload error: {str(e)}")
-            return HttpResponse(f"Error: {str(e)}")
-    return HttpResponse("Upload a file: <form method='post' enctype='multipart/form-data'><input type='file' name='file'><input type='submit'></form>")
