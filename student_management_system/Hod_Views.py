@@ -3,6 +3,10 @@ from django.contrib.auth.decorators import login_required
 from app.models import Course, Session_Year, CustomUser, Student, Staff, Subject, Staff_Notification, Staff_leave, Staff_Feedback, Student_Notification, Student_Feedback, Student_leave, Attendance, Attendance_Report, Parent
 from django.contrib import messages
 from django.http import JsonResponse
+import logging
+
+# Setup logging
+logger = logging.getLogger(__name__)
 
 @login_required(login_url='/')
 def HOME(request):
@@ -44,6 +48,17 @@ def ADD_STUDENT(request):
         course_id = request.POST.get('course_id')
         session_year_id = request.POST.get('session_year_id')
         semester = request.POST.get('semester')
+
+        # Validate profile picture
+        if profile_pic:
+            if profile_pic.size > 5 * 1024 * 1024:  # 5MB limit
+                messages.error(request, 'Profile picture must be under 5MB.')
+                return redirect('add_student')
+            if not profile_pic.content_type.startswith('image/'):
+                messages.error(request, 'Profile picture must be an image (e.g., JPG, PNG).')
+                return redirect('add_student')
+
+        # Validation for unique fields
         if CustomUser.objects.filter(email=email).exists():
             messages.warning(request, 'Email Is Already Taken')
             return redirect('add_student')
@@ -53,30 +68,39 @@ def ADD_STUDENT(request):
         if Student.objects.filter(enrollment_no=enrollment_no).exists():
             messages.warning(request, 'Enrollment Number Is Already Taken')
             return redirect('add_student')
-        user = CustomUser(
-            first_name=full_name,
-            last_name='',
-            username=username,
-            email=email,
-            profile_pic=profile_pic,
-            user_type=3
-        )
-        user.set_password(password)
-        user.save()
-        course = Course.objects.get(id=course_id)
-        session_year = Session_Year.objects.get(id=session_year_id)
-        student = Student(
-            admin=user,
-            address=address,
-            session_year_id=session_year,
-            course_id=course,
-            gender=gender,
-            enrollment_no=enrollment_no,
-            semester=semester if semester else None
-        )
-        student.save()
-        messages.success(request, f"{user.first_name} Successfully Added!")
-        return redirect('add_student')
+
+        try:
+            user = CustomUser(
+                first_name=full_name,
+                last_name='',
+                username=username,
+                email=email,
+                profile_pic=profile_pic,
+                user_type=3
+            )
+            user.set_password(password)
+            user.save()
+            logger.info(f"User {username} saved successfully with profile_pic: {profile_pic}")
+
+            course = Course.objects.get(id=course_id)
+            session_year = Session_Year.objects.get(id=session_year_id)
+            student = Student(
+                admin=user,
+                address=address,
+                session_year_id=session_year,
+                course_id=course,
+                gender=gender,
+                enrollment_no=enrollment_no,
+                semester=semester if semester else None
+            )
+            student.save()
+            messages.success(request, f"{user.first_name} Successfully Added!")
+            return redirect('add_student')
+        except Exception as e:
+            logger.error(f"Error adding student: {str(e)}")
+            messages.error(request, f"Error adding student: {str(e)}")
+            return redirect('add_student')
+
     context = {
         'course': course,
         'session_year': session_year,
@@ -118,34 +142,49 @@ def UPDATE_STUDENT(request):
         course_id = request.POST.get('course_id')
         session_year_id = request.POST.get('session_year_id')
         semester = request.POST.get('semester')
-        
-        user = CustomUser.objects.get(id=student_id)
-        user.first_name = full_name
-        user.last_name = ''
-        user.email = email
-        user.username = username
-        if password and password.strip():
-            user.set_password(password)
+
+        # Validate profile picture
         if profile_pic:
-            user.profile_pic = profile_pic
-        user.save()
-        
-        student = Student.objects.get(admin=student_id)
-        if enrollment_no != student.enrollment_no and Student.objects.filter(enrollment_no=enrollment_no).exists():
-            messages.warning(request, 'Enrollment Number Is Already Taken')
-            return redirect('edit_student', id=student.id)
-        
-        student.address = address
-        student.gender = gender
-        student.enrollment_no = enrollment_no
-        course = Course.objects.get(id=course_id)
-        student.course_id = course
-        session_year = Session_Year.objects.get(id=session_year_id)
-        student.session_year_id = session_year
-        student.semester = int(semester) if semester else None
-        student.save()
-        messages.success(request, 'Record Successfully Updated!')
-        return redirect('view_student')
+            if profile_pic.size > 5 * 1024 * 1024:  # 5MB limit
+                messages.error(request, 'Profile picture must be under 5MB.')
+                return redirect('edit_student', id=student_id)
+            if not profile_pic.content_type.startswith('image/'):
+                messages.error(request, 'Profile picture must be an image (e.g., JPG, PNG).')
+                return redirect('edit_student', id=student_id)
+
+        try:
+            user = CustomUser.objects.get(id=student_id)
+            user.first_name = full_name
+            user.last_name = ''
+            user.email = email
+            user.username = username
+            if password and password.strip():
+                user.set_password(password)
+            if profile_pic:
+                user.profile_pic = profile_pic
+            user.save()
+            logger.info(f"User {username} updated successfully with profile_pic: {profile_pic}")
+
+            student = Student.objects.get(admin=student_id)
+            if enrollment_no != student.enrollment_no and Student.objects.filter(enrollment_no=enrollment_no).exists():
+                messages.warning(request, 'Enrollment Number Is Already Taken')
+                return redirect('edit_student', id=student.id)
+
+            student.address = address
+            student.gender = gender
+            student.enrollment_no = enrollment_no
+            course = Course.objects.get(id=course_id)
+            student.course_id = course
+            session_year = Session_Year.objects.get(id=session_year_id)
+            student.session_year_id = session_year
+            student.semester = int(semester) if semester else None
+            student.save()
+            messages.success(request, 'Record Successfully Updated!')
+            return redirect('view_student')
+        except Exception as e:
+            logger.error(f"Error updating student: {str(e)}")
+            messages.error(request, f"Error updating student: {str(e)}")
+            return redirect('edit_student', id=student_id)
     return render(request, 'Hod/edit_student.html')
 
 @login_required(login_url='/')
@@ -215,6 +254,16 @@ def ADD_STAFF(request):
         gender = request.POST.get('gender')
         course_id = request.POST.get('course_id')
         subject_id = request.POST.get('subject_id')
+
+        # Validate profile picture
+        if profile_pic:
+            if profile_pic.size > 5 * 1024 * 1024:  # 5MB limit
+                messages.error(request, 'Profile picture must be under 5MB.')
+                return redirect('add_staff')
+            if not profile_pic.content_type.startswith('image/'):
+                messages.error(request, 'Profile picture must be an image (e.g., JPG, PNG).')
+                return redirect('add_staff')
+
         if CustomUser.objects.filter(email=email).exists():
             messages.warning(request, 'Email Is Already Taken!')
             return redirect('add_staff')
@@ -224,31 +273,40 @@ def ADD_STAFF(request):
         if subject_id and Staff.objects.filter(subjects__id=subject_id).exists():
             messages.error(request, 'This subject is already assigned to another staff member.')
             return redirect('add_staff')
-        user = CustomUser(
-            first_name=first_name,
-            last_name=last_name,
-            email=email,
-            username=username,
-            profile_pic=profile_pic,
-            user_type=2
-        )
-        user.set_password(password)
-        user.save()
-        staff = Staff(
-            admin=user,
-            address=address,
-            gender=gender
-        )
-        staff.save()
-        if subject_id:
-            try:
-                subject = Subject.objects.get(id=subject_id)
-                staff.subjects.add(subject)
-            except Subject.DoesNotExist:
-                messages.error(request, f"Subject with ID {subject_id} does not exist.")
-                return redirect('add_staff')
-        messages.success(request, 'Staff Successfully Added!')
-        return redirect('add_staff')
+
+        try:
+            user = CustomUser(
+                first_name=first_name,
+                last_name=last_name,
+                email=email,
+                username=username,
+                profile_pic=profile_pic,
+                user_type=2
+            )
+            user.set_password(password)
+            user.save()
+            logger.info(f"Staff {username} saved successfully with profile_pic: {profile_pic}")
+
+            staff = Staff(
+                admin=user,
+                address=address,
+                gender=gender
+            )
+            staff.save()
+            if subject_id:
+                try:
+                    subject = Subject.objects.get(id=subject_id)
+                    staff.subjects.add(subject)
+                except Subject.DoesNotExist:
+                    messages.error(request, f"Subject with ID {subject_id} does not exist.")
+                    return redirect('add_staff')
+            messages.success(request, 'Staff Successfully Added!')
+            return redirect('add_staff')
+        except Exception as e:
+            logger.error(f"Error adding staff: {str(e)}")
+            messages.error(request, f"Error adding staff: {str(e)}")
+            return redirect('add_staff')
+
     context = {
         'subjects': subjects,
         'courses': courses,
@@ -289,35 +347,53 @@ def UPDATE_STAFF(request):
         gender = request.POST.get('gender')
         course_id = request.POST.get('course_id')
         subject_id = request.POST.get('subject_id')
-        user = CustomUser.objects.get(id=staff_id)
-        user.username = username
-        user.first_name = first_name
-        user.last_name = last_name
-        user.email = email
-        if password and password.strip():
-            user.set_password(password)
+
+        # Validate profile picture
         if profile_pic:
-            user.profile_pic = profile_pic
-        user.save()
-        staff = Staff.objects.get(admin=staff_id)
-        staff.gender = gender
-        staff.address = address
-        if subject_id:
-            existing_staff = Staff.objects.filter(subjects__id=subject_id).exclude(id=staff.id)
-            if existing_staff.exists():
-                messages.error(request, 'This subject is already assigned to another staff member.')
-                return redirect('edit_staff', id=staff.id)
-        staff.subjects.clear()
-        if subject_id:
-            try:
-                subject = Subject.objects.get(id=subject_id)
-                staff.subjects.add(subject)
-            except Subject.DoesNotExist:
-                messages.error(request, f"Subject with ID {subject_id} does not exist.")
-                return redirect('edit_staff', id=staff.id)
-        staff.save()
-        messages.success(request, 'Staff Successfully Updated')
-        return redirect('view_staff')
+            if profile_pic.size > 5 * 1024 * 1024:  # 5MB limit
+                messages.error(request, 'Profile picture must be under 5MB.')
+                return redirect('edit_staff', id=staff_id)
+            if not profile_pic.content_type.startswith('image/'):
+                messages.error(request, 'Profile picture must be an image (e.g., JPG, PNG).')
+                return redirect('edit_staff', id=staff_id)
+
+        try:
+            user = CustomUser.objects.get(id=staff_id)
+            user.username = username
+            user.first_name = first_name
+            user.last_name = last_name
+            user.email = email
+            if password and password.strip():
+                user.set_password(password)
+            if profile_pic:
+                user.profile_pic = profile_pic
+            user.save()
+            logger.info(f"Staff {username} updated successfully with profile_pic: {profile_pic}")
+
+            staff = Staff.objects.get(admin=staff_id)
+            staff.gender = gender
+            staff.address = address
+            if subject_id:
+                existing_staff = Staff.objects.filter(subjects__id=subject_id).exclude(id=staff.id)
+                if existing_staff.exists():
+                    messages.error(request, 'This subject is already assigned to another staff member.')
+                    return redirect('edit_staff', id=staff.id)
+            staff.subjects.clear()
+            if subject_id:
+                try:
+                    subject = Subject.objects.get(id=subject_id)
+                    staff.subjects.add(subject)
+                except Subject.DoesNotExist:
+                    messages.error(request, f"Subject with ID {subject_id} does not exist.")
+                    return redirect('edit_staff', id=staff.id)
+            staff.save()
+            messages.success(request, 'Staff Successfully Updated')
+            return redirect('view_staff')
+        except Exception as e:
+            logger.error(f"Error updating staff: {str(e)}")
+            messages.error(request, f"Error updating staff: {str(e)}")
+            return redirect('edit_staff', id=staff_id)
+
     return render(request, 'Hod/edit_staff.html')
 
 @login_required(login_url='/')
@@ -341,33 +417,52 @@ def ADD_PARENT(request):
         relationship = request.POST.get('relationship')
         phone_number = request.POST.get('phone_number')
         address = request.POST.get('address')
+
+        # Validate profile picture
+        if profile_pic:
+            if profile_pic.size > 5 * 1024 * 1024:  # 5MB limit
+                messages.error(request, 'Profile picture must be under 5MB.')
+                return redirect('add_parent')
+            if not profile_pic.content_type.startswith('image/'):
+                messages.error(request, 'Profile picture must be an image (e.g., JPG, PNG).')
+                return redirect('add_parent')
+
         if CustomUser.objects.filter(email=email).exists():
             messages.warning(request, 'Email Is Already Taken!')
             return redirect('add_parent')
         if CustomUser.objects.filter(username=username).exists():
             messages.warning(request, 'Username Is Already Taken!')
             return redirect('add_parent')
-        user = CustomUser(
-            first_name=first_name,
-            last_name=last_name,
-            email=email,
-            username=username,
-            profile_pic=profile_pic,
-            user_type=4
-        )
-        user.set_password(password)
-        user.save()
-        student = Student.objects.get(id=student_id)
-        parent = Parent(
-            admin=user,
-            student=student,
-            relationship=relationship,
-            phone_number=phone_number,
-            address=address
-        )
-        parent.save()
-        messages.success(request, 'Parent Added Successfully!')
-        return redirect('add_parent')
+
+        try:
+            user = CustomUser(
+                first_name=first_name,
+                last_name=last_name,
+                email=email,
+                username=username,
+                profile_pic=profile_pic,
+                user_type=4
+            )
+            user.set_password(password)
+            user.save()
+            logger.info(f"Parent {username} saved successfully with profile_pic: {profile_pic}")
+
+            student = Student.objects.get(id=student_id)
+            parent = Parent(
+                admin=user,
+                student=student,
+                relationship=relationship,
+                phone_number=phone_number,
+                address=address
+            )
+            parent.save()
+            messages.success(request, 'Parent Added Successfully!')
+            return redirect('add_parent')
+        except Exception as e:
+            logger.error(f"Error adding parent: {str(e)}")
+            messages.error(request, f"Error adding parent: {str(e)}")
+            return redirect('add_parent')
+
     context = {
         'students': students,
     }
@@ -405,25 +500,43 @@ def UPDATE_PARENT(request):
         relationship = request.POST.get('relationship')
         phone_number = request.POST.get('phone_number')
         address = request.POST.get('address')
-        user = CustomUser.objects.get(id=parent_id)
-        user.first_name = first_name
-        user.last_name = last_name
-        user.email = email
-        user.username = username
-        if password and password.strip():
-            user.set_password(password)
+
+        # Validate profile picture
         if profile_pic:
-            user.profile_pic = profile_pic
-        user.save()
-        parent = Parent.objects.get(admin=parent_id)
-        student = Student.objects.get(id=student_id)
-        parent.student = student
-        parent.relationship = relationship
-        parent.phone_number = phone_number
-        parent.address = address
-        parent.save()
-        messages.success(request, 'Parent Updated Successfully!')
-        return redirect('view_parent')
+            if profile_pic.size > 5 * 1024 * 1024:  # 5MB limit
+                messages.error(request, 'Profile picture must be under 5MB.')
+                return redirect('edit_parent', id=parent_id)
+            if not profile_pic.content_type.startswith('image/'):
+                messages.error(request, 'Profile picture must be an image (e.g., JPG, PNG).')
+                return redirect('edit_parent', id=parent_id)
+
+        try:
+            user = CustomUser.objects.get(id=parent_id)
+            user.first_name = first_name
+            user.last_name = last_name
+            user.email = email
+            user.username = username
+            if password and password.strip():
+                user.set_password(password)
+            if profile_pic:
+                user.profile_pic = profile_pic
+            user.save()
+            logger.info(f"Parent {username} updated successfully with profile_pic: {profile_pic}")
+
+            parent = Parent.objects.get(admin=parent_id)
+            student = Student.objects.get(id=student_id)
+            parent.student = student
+            parent.relationship = relationship
+            parent.phone_number = phone_number
+            parent.address = address
+            parent.save()
+            messages.success(request, 'Parent Updated Successfully!')
+            return redirect('view_parent')
+        except Exception as e:
+            logger.error(f"Error updating parent: {str(e)}")
+            messages.error(request, f"Error updating parent: {str(e)}")
+            return redirect('edit_parent', id=parent_id)
+
     return render(request, 'Hod/edit_parent.html')
 
 @login_required(login_url='/')
