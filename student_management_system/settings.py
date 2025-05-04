@@ -129,6 +129,8 @@ from pathlib import Path
 from decouple import config
 import dj_database_url
 import cloudinary
+import cloudinary.uploader
+import cloudinary.api
 import logging
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -138,23 +140,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Custom boolean casting function to handle comments and case-insensitive values
-def cast_boolean(value):
-    if not value:
-        return False
-    # Strip comments and whitespace
-    value = value.split('#')[0].strip().lower()
-    if value in ('true', '1', 'yes', 'on'):
-        return True
-    if value in ('false', '0', 'no', 'off'):
-        return False
-    raise ValueError(f"Invalid boolean value: {value}")
-
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = config('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default='False', cast=cast_boolean)
+debug_value = config('DEBUG', default='False').lower()
+DEBUG = debug_value in ('true', '1', 'yes', 'on')
 
 ALLOWED_HOSTS = ['.vercel.app', '.now.sh', '127.0.0.1', 'localhost']
 
@@ -233,45 +224,29 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Media files (for profile_pic)
-CLOUDINARY_STORAGE = {
-    'CLOUD_NAME': config('CLOUDINARY_CLOUD_NAME'),
-    'API_KEY': config('CLOUDINARY_API_KEY'),
-    'API_SECRET': config('CLOUDINARY_API_SECRET'),
-}
+try:
+    CLOUDINARY_STORAGE = {
+        'CLOUD_NAME': config('CLOUDINARY_CLOUD_NAME'),
+        'API_KEY': config('CLOUDINARY_API_KEY'),
+        'API_SECRET': config('CLOUDINARY_API_SECRET'),
+    }
+    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+    logger.info("Cloudinary storage configured successfully.")
+    logger.info(f"DEFAULT_FILE_STORAGE is set to: {DEFAULT_FILE_STORAGE}")
+    # Test Cloudinary connection
+    cloudinary.config(
+        cloud_name=CLOUDINARY_STORAGE['CLOUD_NAME'],
+        api_key=CLOUDINARY_STORAGE['API_KEY'],
+        api_secret=CLOUDINARY_STORAGE['API_SECRET']
+    )
+    cloudinary.api.ping()  # This will raise an exception if Cloudinary fails
+except Exception as e:
+    logger.error(f"Failed to configure Cloudinary: {str(e)}")
+    raise Exception(f"Cloudinary configuration failed: {str(e)}")
 
-DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 MEDIA_URL = '/media/'
-MEDIA_ROOT = ''  # Not needed with Cloudinary
-
-# Log Cloudinary configuration for debugging
-logger.info(f"Cloudinary configured with CLOUD_NAME: {CLOUDINARY_STORAGE['CLOUD_NAME']}")
-logger.info(f"DEFAULT_FILE_STORAGE set to: {DEFAULT_FILE_STORAGE}")
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'app.CustomUser'
-
-# Logging configuration for debugging
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'level': 'INFO',
-            'class': 'logging.StreamHandler',
-        },
-        'file': {
-            'level': 'INFO',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'debug.log'),
-        },
-    },
-    'loggers': {
-        '': {
-            'handlers': ['console', 'file'],
-            'level': 'INFO',
-            'propagate': True,
-        },
-    },
-}
