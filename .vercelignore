@@ -1,9 +1,4 @@
 venv/
-*.sqlite3
 *.pyc
 __pycache__/
-.env
-static/
-staticfiles/
-media/
-data.json
+*.sqlite3
