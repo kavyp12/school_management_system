@@ -6,10 +6,10 @@ class CustomUser(AbstractUser):
         (1, 'HOD'),
         (2, 'STAFF'),
         (3, 'STUDENT'),
-        (4, 'PARENT'),  # Added Parent user type
+        (4, 'PARENT'),
     )
     user_type = models.CharField(choices=USER, max_length=50, default=1)
-    profile_pic = models.ImageField(upload_to='media/profile_pic')
+    profile_pic = models.ImageField(upload_to='media/profile_pic', null=True, blank=True)
 
     def __str__(self):
         return self.first_name if self.first_name else self.username
@@ -56,7 +56,7 @@ class Student(models.Model):
 class Parent(models.Model):
     admin = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='parents')
-    relationship = models.CharField(max_length=50)  # e.g., Father, Mother
+    relationship = models.CharField(max_length=50)
     phone_number = models.CharField(max_length=15, blank=True)
     address = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -178,7 +178,7 @@ class Attendance(models.Model):
 class Attendance_Report(models.Model):
     student_id = models.ForeignKey(Student, on_delete=models.CASCADE)
     attendance_id = models.ForeignKey(Attendance, on_delete=models.CASCADE)
-    status = models.IntegerField(default=0)  # 0 for absent, 1 for present
+    status = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
