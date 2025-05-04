@@ -223,21 +223,41 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Media files (for profile_pic)
 try:
+    cloudinary_cloud_name = config('CLOUDINARY_CLOUD_NAME')
+    cloudinary_api_key = config('CLOUDINARY_API_KEY')
+    cloudinary_api_secret = config('CLOUDINARY_API_SECRET')
+    
+    # Log the credentials (remove in production)
+    logger.info(f"Cloudinary Cloud Name: {cloudinary_cloud_name}")
+    logger.info(f"Cloudinary API Key: {cloudinary_api_key}")
+    logger.info(f"Cloudinary API Secret: {cloudinary_api_secret[:5]}...")
+    
+    # Configure Cloudinary
+    cloudinary.config(
+        cloud_name=cloudinary_cloud_name,
+        api_key=cloudinary_api_key,
+        api_secret=cloudinary_api_secret
+    )
+    
+    # Set up Django Cloudinary storage
     CLOUDINARY_STORAGE = {
-        'CLOUD_NAME': config('CLOUDINARY_CLOUD_NAME'),
-        'API_KEY': config('CLOUDINARY_API_KEY'),
-        'API_SECRET': config('CLOUDINARY_API_SECRET'),
+        'CLOUD_NAME': cloudinary_cloud_name,
+        'API_KEY': cloudinary_api_key,
+        'API_SECRET': cloudinary_api_secret,
     }
+    
+    # Test connection
+    ping_result = cloudinary.api.ping()
+    logger.info(f"Cloudinary ping successful: {ping_result}")
+    
     DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
     logger.info("Cloudinary storage configured successfully.")
+    
 except Exception as e:
     logger.error(f"Failed to configure Cloudinary: {str(e)}")
-    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
-
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
-# Default primary key field type
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-AUTH_USER_MODEL = 'app.CustomUser'
+    if DEBUG:  # Only raise exception in debug mode
+        raise Exception(f"Cloudinary configuration failed: {str(e)}")
+    else:
+        logger.warning("Running without Cloudinary in production mode")
+        # Fallback to local storage in production
+        DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
