@@ -227,11 +227,9 @@
 #     def __str__(self):
 #         return f"{self.student_id.admin.first_name} - {self.subject_id.name}"
 
-
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from cloudinary.models import CloudinaryField
-from cloudinary_storage.storage import MediaCloudinaryStorage, RawMediaCloudinaryStorage, VideoMediaCloudinaryStorage
 
 class CustomUser(AbstractUser):
     USER = (
@@ -244,7 +242,7 @@ class CustomUser(AbstractUser):
     profile_pic = CloudinaryField('image', folder='profile_pic', null=True, blank=True)
 
     def __str__(self):
-        return self.first_name if self.first_name else self.username
+        return self.first_name or self.username or f"User_{self.id}"
 
 class Course(models.Model):
     name = models.CharField(max_length=100)
@@ -252,7 +250,7 @@ class Course(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return self.name
+        return self.name or f"Course_{self.id}"
 
 class Session_Year(models.Model):
     session_start = models.CharField(max_length=100)
@@ -283,7 +281,7 @@ class Student(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return self.admin.first_name
+        return self.admin.first_name or self.admin.username or f"Student_{self.id}"
 
 class Parent(models.Model):
     admin = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
@@ -295,7 +293,9 @@ class Parent(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.admin.first_name} ({self.relationship} of {self.student.admin.first_name})"
+        student_name = self.student.admin.first_name or self.student.admin.username or f"Student_{self.student.id}"
+        parent_name = self.admin.first_name or self.admin.username or f"Parent_{self.admin.id}"
+        return f"{parent_name} ({self.relationship} of {student_name})"
 
 class Staff(models.Model):
     admin = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
@@ -306,7 +306,7 @@ class Staff(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return self.admin.username
+        return self.admin.username or self.admin.first_name or f"Staff_{self.id}"
 
 class Subject(models.Model):
     CREDIT_CHOICES = (
@@ -323,7 +323,7 @@ class Subject(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.subject_code} - {self.name}" if self.subject_code else self.name
+        return f"{self.subject_code} - {self.name}" if self.subject_code else self.name or f"Subject_{self.id}"
 
 class Note(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
@@ -333,7 +333,7 @@ class Note(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.title} - {self.user.username}"
+        return f"{self.title} - {self.user.username or self.user.first_name or f'User_{self.user.id}'}"
 
 class Staff_Notification(models.Model):
     staff_id = models.ForeignKey(Staff, on_delete=models.CASCADE)
@@ -342,7 +342,7 @@ class Staff_Notification(models.Model):
     status = models.IntegerField(null=True, default=0)
 
     def __str__(self):
-        return f"{self.staff_id.admin.first_name} - Notification"
+        return f"{self.staff_id.admin.first_name or self.staff_id.admin.username or f'Staff_{self.staff_id.id}'} - Notification"
 
 class Student_Notification(models.Model):
     student_id = models.ForeignKey(Student, on_delete=models.CASCADE)
@@ -351,7 +351,7 @@ class Student_Notification(models.Model):
     status = models.IntegerField(null=True, default=0)
 
     def __str__(self):
-        return f"{self.student_id.admin.first_name} - Notification"
+        return f"{self.student_id.admin.first_name or self.student_id.admin.username or f'Student_{self.student_id.id}'} - Notification"
 
 class Staff_leave(models.Model):
     staff_id = models.ForeignKey(Staff, on_delete=models.CASCADE)
@@ -362,7 +362,7 @@ class Staff_leave(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.staff_id.admin.first_name} - Leave"
+        return f"{self.staff_id.admin.first_name or self.staff_id.admin.username or f'Staff_{self.staff_id.id}'} - Leave"
 
 class Student_leave(models.Model):
     student_id = models.ForeignKey(Student, on_delete=models.CASCADE)
@@ -373,29 +373,29 @@ class Student_leave(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.student_id.admin.first_name} - Leave"
+        return f"{self.student_id.admin.first_name or self.student_id.admin.username or f'Student_{self.student_id.id}'} - Leave"
 
 class Staff_Feedback(models.Model):
     staff_id = models.ForeignKey(Staff, on_delete=models.CASCADE)
     feedback = models.TextField()
-    feedback_reply = models.TextField()
+    feedback_reply = models.TextField(blank=True)
     status = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True, null=True)
     updated_at = models.DateTimeField(auto_now=True, null=True)
 
     def __str__(self):
-        return f"{self.staff_id.admin.first_name} - Feedback"
+        return f"{self.staff_id.admin.first_name or self.staff_id.admin.username or f'Staff_{self.staff_id.id}'} - Feedback"
 
 class Student_Feedback(models.Model):
     student_id = models.ForeignKey(Student, on_delete=models.CASCADE)
     feedback = models.TextField()
-    feedback_reply = models.TextField()
+    feedback_reply = models.TextField(blank=True)
     status = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True, null=True)
     updated_at = models.DateTimeField(auto_now=True, null=True)
 
     def __str__(self):
-        return f"{self.student_id.admin.first_name} - Feedback"
+        return f"{self.student_id.admin.first_name or self.student_id.admin.username or f'Student_{self.student_id.id}'} - Feedback"
 
 class Attendance(models.Model):
     subject_id = models.ForeignKey(Subject, on_delete=models.CASCADE)
@@ -405,7 +405,7 @@ class Attendance(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Attendance for {self.subject_id.name} on {self.attendance_data}"
+        return f"Attendance for {self.subject_id.name or f'Subject_{self.subject_id.id}'} on {self.attendance_data}"
 
 class Attendance_Report(models.Model):
     student_id = models.ForeignKey(Student, on_delete=models.CASCADE)
@@ -415,7 +415,7 @@ class Attendance_Report(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.student_id.admin.first_name} - {self.attendance_id}"
+        return f"{self.student_id.admin.first_name or self.student_id.admin.username or f'Student_{self.student_id.id}'} - {self.attendance_id}"
 
 class StudentResult(models.Model):
     student_id = models.ForeignKey(Student, on_delete=models.CASCADE)
@@ -426,3 +426,35 @@ class StudentResult(models.Model):
     ia2_mark = models.FloatField(null=True, blank=True)
     attendance_mark = models.FloatField(null=True, blank=True)
     midsem_mark = models.FloatField(null=True, blank=True)
+    end_sem_mark = models.FloatField(null=True, blank=True)
+    total_mark = models.FloatField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def calculate_total_marks(self):
+        marks = [
+            self.ia1_mark or 0,
+            self.ia2_mark or 0,
+            self.attendance_mark or 0,
+            self.midsem_mark or 0,
+            self.end_sem_mark or 0
+        ]
+        total = sum(marks)
+        self.total_mark = total
+        return total
+
+    def calculate_cgpa(self):
+        total_marks = self.calculate_total_marks()
+        max_marks = 100
+        if total_marks > 0:
+            percentage = (total_marks / max_marks) * 100
+            cgpa = percentage / 9.5
+            return round(cgpa, 2) if cgpa <= 10 else 10.0
+        return None
+
+    def save(self, *args, **kwargs):
+        self.calculate_total_marks()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.student_id.admin.first_name or self.student_id.admin.username or f'Student_{self.student_id.id}'} - {self.subject_id.name or f'Subject_{self.subject_id.id}'}"
