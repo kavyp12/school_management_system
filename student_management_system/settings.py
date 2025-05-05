@@ -122,16 +122,11 @@
 
 
 # AUTH_USER_MODEL = 'app.CustomUser'
-
 import os
 from pathlib import Path
 from decouple import config
 import dj_database_url
-import cloudinary
-import cloudinary.uploader
-import cloudinary.api
 import logging
-from django.core.files.storage import FileSystemStorage
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -157,8 +152,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'cloudinary_storage',  # For Cloudinary media storage
-    'cloudinary',          # Cloudinary integration
     'app',
 ]
 
@@ -224,37 +217,9 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Media files (for profile_pic)
-try:
-    CLOUDINARY_STORAGE = {
-        'CLOUD_NAME': config('CLOUDINARY_CLOUD_NAME'),
-        'API_KEY': config('CLOUDINARY_API_KEY'),
-        'API_SECRET': config('CLOUDINARY_API_SECRET'),
-    }
-    if not all(CLOUDINARY_STORAGE.values()):
-        raise ValueError("One or more Cloudinary environment variables are missing or empty.")
-    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
-    logger.info("Cloudinary storage configured successfully.")
-    logger.info(f"Cloudinary credentials: CLOUD_NAME={CLOUDINARY_STORAGE['CLOUD_NAME']}, API_KEY={CLOUDINARY_STORAGE['API_KEY']}")
-    logger.info(f"DEFAULT_FILE_STORAGE is set to: {DEFAULT_FILE_STORAGE}")
-    # Test Cloudinary connection
-    cloudinary.config(
-        cloud_name=CLOUDINARY_STORAGE['CLOUD_NAME'],
-        api_key=CLOUDINARY_STORAGE['API_KEY'],
-        api_secret=CLOUDINARY_STORAGE['API_SECRET']
-    )
-    response = cloudinary.api.ping()
-    logger.info(f"Cloudinary ping response: {response}")
-except Exception as e:
-    logger.error(f"Failed to configure Cloudinary: {str(e)}")
-    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
-    logger.warning("Falling back to FileSystemStorage. Profile pictures will not be uploaded to Cloudinary.")
-    if DEBUG:
-        logger.info("In DEBUG mode, using FileSystemStorage for local testing.")
-    else:
-        raise Exception(f"Cloudinary configuration failed in production: {str(e)}")
-
+DEFAULT_FILE_STORAGE = 'app.storage.VercelBlobStorage'
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # Used only with FileSystemStorage
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # Fallback for local development
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
