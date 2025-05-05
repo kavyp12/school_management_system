@@ -122,6 +122,7 @@
 
 
 # AUTH_USER_MODEL = 'app.CustomUser'
+
 import os
 from pathlib import Path
 from decouple import config
