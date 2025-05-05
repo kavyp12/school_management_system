@@ -1,5 +1,19 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+import os
+import uuid
+
+def profile_pic_path(instance, filename):
+    """
+    Custom function to generate a unique path for profile pictures
+    This works with any storage backend
+    """
+    # Get file extension
+    ext = filename.split('.')[-1]
+    # Generate a unique filename with username and uuid to prevent collisions
+    new_filename = f"{instance.username}_{uuid.uuid4().hex[:8]}.{ext}"
+    # Return the path
+    return os.path.join('profile_pics', new_filename)
 
 class CustomUser(AbstractUser):
     USER = (
@@ -9,7 +23,7 @@ class CustomUser(AbstractUser):
         (4, 'PARENT'),
     )
     user_type = models.CharField(choices=USER, max_length=50, default=1)
-    profile_pic = models.ImageField(upload_to='profile_pic', null=True, blank=True)
+    profile_pic = models.ImageField(upload_to=profile_pic_path, null=True, blank=True)
 
     def __str__(self):
         return self.first_name if self.first_name else self.username

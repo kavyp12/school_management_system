@@ -133,11 +133,14 @@ import logging
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Setup logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 # Log storage backend for debugging
-logger.info(f"DEFAULT_FILE_STORAGE is set to: {os.getenv('DEFAULT_FILE_STORAGE', 'app.storage.VercelBlobStorage')}")
+logger.info(f"DEFAULT_FILE_STORAGE is set to: {config('DEFAULT_FILE_STORAGE', default='app.storage.VercelBlobStorage')}")
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = config('DJANGO_SECRET_KEY')
@@ -193,9 +196,9 @@ WSGI_APPLICATION = 'student_management_system.wsgi.application'
 # Database configuration using dj-database-url
 DATABASES = {
     'default': dj_database_url.config(
-        default=config('POSTGRES_URL'),
+        default=config('POSTGRES_URL', default='sqlite:///db.sqlite3'),
         conn_max_age=600,
-        ssl_require=True  # Supabase requires SSL
+        ssl_require=not DEBUG  # Only require SSL in production
     )
 }
 
@@ -221,8 +224,10 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Media files (for profile_pic)
-DEFAULT_FILE_STORAGE = 'app.storage.VercelBlobStorage'
+# Use environment variable to determine storage backend
+DEFAULT_FILE_STORAGE = config('DEFAULT_FILE_STORAGE', default='app.storage.VercelBlobStorage')
 MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
