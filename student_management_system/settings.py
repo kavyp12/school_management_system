@@ -128,6 +128,7 @@ from pathlib import Path
 from decouple import config
 import dj_database_url
 import logging
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -138,6 +139,11 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Validate critical environment variables
+if not os.getenv('BLOB_READ_WRITE_TOKEN'):
+    logger.error("BLOB_READ_WRITE_TOKEN is not set. VercelBlobStorage will fail.")
+    raise ImproperlyConfigured("BLOB_READ_WRITE_TOKEN environment variable is not set.")
 
 # Log storage backend for debugging
 logger.info(f"DEFAULT_FILE_STORAGE is set to: {config('DEFAULT_FILE_STORAGE', default='app.storage.VercelBlobStorage')}")

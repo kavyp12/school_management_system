@@ -13,12 +13,15 @@ class VercelBlobStorage(Storage):
     Custom storage backend for Vercel Blob storage
     """
     def __init__(self):
+        logger.info("Initializing VercelBlobStorage")
         self.token = os.getenv('BLOB_READ_WRITE_TOKEN')
         if not self.token:
+            logger.error("BLOB_READ_WRITE_TOKEN is not set")
             raise ImproperlyConfigured("BLOB_READ_WRITE_TOKEN environment variable is not set.")
         
         self.base_url = os.getenv('BLOB_BASE_URL', 'https://hg2cdq8jxv2osfar.public.blob.vercel-storage.com')
         self.folder = 'profile_pics'  # Folder for profile pictures
+        logger.info(f"VercelBlobStorage configured with base_url: {self.base_url}")
         
         # Import vercel_blob
         try:
@@ -26,6 +29,7 @@ class VercelBlobStorage(Storage):
             self.blob_put = put
             self.blob_head = head
             self.blob_delete = delete
+            logger.info("Successfully imported vercel_blob module")
         except ImportError as e:
             logger.error(f"Failed to import vercel_blob module: {str(e)}")
             raise ImproperlyConfigured("vercel_blob module is not installed. Ensure it is included in requirements.txt.")
