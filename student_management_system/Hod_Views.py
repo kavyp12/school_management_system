@@ -3,6 +3,10 @@ from django.contrib.auth.decorators import login_required
 from app.models import Course, Session_Year, CustomUser, Student, Staff, Subject, Staff_Notification, Staff_leave, Staff_Feedback, Student_Notification, Student_Feedback, Student_leave, Attendance, Attendance_Report, Parent
 from django.contrib import messages
 from django.http import JsonResponse
+import logging
+import cloudinary.uploader
+
+logger = logging.getLogger(__name__)
 
 @login_required(login_url='/')
 def HOME(request):
@@ -33,6 +37,7 @@ def ADD_STUDENT(request):
     course = Course.objects.all()
     session_year = Session_Year.objects.all()
     if request.method == "POST":
+        logger.info("Received POST request to add student")
         profile_pic = request.FILES.get('profile_pic')
         full_name = request.POST.get('full_name')
         enrollment_no = request.POST.get('enrollment_no')
@@ -53,30 +58,39 @@ def ADD_STUDENT(request):
         if Student.objects.filter(enrollment_no=enrollment_no).exists():
             messages.warning(request, 'Enrollment Number Is Already Taken')
             return redirect('add_student')
-        user = CustomUser(
-            first_name=full_name,
-            last_name='',
-            username=username,
-            email=email,
-            profile_pic=profile_pic,
-            user_type=3
-        )
-        user.set_password(password)
-        user.save()
-        course = Course.objects.get(id=course_id)
-        session_year = Session_Year.objects.get(id=session_year_id)
-        student = Student(
-            admin=user,
-            address=address,
-            session_year_id=session_year,
-            course_id=course,
-            gender=gender,
-            enrollment_no=enrollment_no,
-            semester=semester if semester else None
-        )
-        student.save()
-        messages.success(request, f"{user.first_name} Successfully Added!")
-        return redirect('add_student')
+        try:
+            user = CustomUser(
+                first_name=full_name,
+                last_name='',
+                username=username,
+                email=email,
+                profile_pic=profile_pic,
+                user_type=3
+            )
+            user.set_password(password)
+            user.save()
+            logger.info(f"User {username} saved successfully")
+            course = Course.objects.get(id=course_id)
+            session_year = Session_Year.objects.get(id=session_year_id)
+            student = Student(
+                admin=user,
+                address=address,
+                session_year_id=session_year,
+                course_id=course,
+                gender=gender,
+                enrollment_no=enrollment_no,
+                semester=semester if semester else None
+            )
+            student.save()
+            logger.info(f"Student {full_name} saved successfully")
+            if profile_pic:
+                logger.info(f"Profile picture uploaded for {username}: {user.profile_pic.url}")
+            messages.success(request, f"{user.first_name} Successfully Added!")
+            return redirect('add_student')
+        except Exception as e:
+            logger.error(f"Error adding student: {str(e)}", exc_info=True)
+            messages.error(request, f"An error occurred while adding the student: {str(e)}")
+            return redirect('add_student')
     context = {
         'course': course,
         'session_year': session_year,
@@ -106,6 +120,7 @@ def EDIT_STUDENT(request, id):
 @login_required(login_url='/')
 def UPDATE_STUDENT(request):
     if request.method == "POST":
+        logger.info("Received POST request to update student")
         student_id = request.POST.get('student_id')
         profile_pic = request.FILES.get('profile_pic')
         full_name = request.POST.get('full_name')
@@ -118,34 +133,41 @@ def UPDATE_STUDENT(request):
         course_id = request.POST.get('course_id')
         session_year_id = request.POST.get('session_year_id')
         semester = request.POST.get('semester')
-        
-        user = CustomUser.objects.get(id=student_id)
-        user.first_name = full_name
-        user.last_name = ''
-        user.email = email
-        user.username = username
-        if password and password.strip():
-            user.set_password(password)
-        if profile_pic:
-            user.profile_pic = profile_pic
-        user.save()
-        
-        student = Student.objects.get(admin=student_id)
-        if enrollment_no != student.enrollment_no and Student.objects.filter(enrollment_no=enrollment_no).exists():
-            messages.warning(request, 'Enrollment Number Is Already Taken')
-            return redirect('edit_student', id=student.id)
-        
-        student.address = address
-        student.gender = gender
-        student.enrollment_no = enrollment_no
-        course = Course.objects.get(id=course_id)
-        student.course_id = course
-        session_year = Session_Year.objects.get(id=session_year_id)
-        student.session_year_id = session_year
-        student.semester = int(semester) if semester else None
-        student.save()
-        messages.success(request, 'Record Successfully Updated!')
-        return redirect('view_student')
+        try:
+            user = CustomUser.objects.get(id=student_id)
+            user.first_name = full_name
+            user.last_name = ''
+            user.email = email
+            user.username = username
+            if password and password.strip():
+                user.set_password(password)
+            if profile_pic:
+                logger.info(f"Updating profile picture for {username}")
+                user.profile_pic = profile_pic
+            user.save()
+            logger.info(f"User {username} updated successfully")
+            student = Student.objects.get(admin=student_id)
+            if enrollment_no != student.enrollment_no and Student.objects.filter(enrollment_no=enrollment_no).exists():
+                messages.warning(request, 'Enrollment Number Is Already Taken')
+                return redirect('edit_student', id=student.id)
+            student.address = address
+            student.gender = gender
+            student.enrollment_no = enrollment_no
+            course = Course.objects.get(id=course_id)
+            student.course_id = course
+            session_year = Session_Year.objects.get(id=session_year_id)
+            student.session_year_id = session_year
+            student.semester = int(semester) if semester else None
+            student.save()
+            logger.info(f"Student {full_name} updated successfully")
+            if profile_pic:
+                logger.info(f"Profile picture updated for {username}: {user.profile_pic.url}")
+            messages.success(request, 'Record Successfully Updated!')
+            return redirect('view_student')
+        except Exception as e:
+            logger.error(f"Error updating student: {str(e)}", exc_info=True)
+            messages.error(request, f"An error occurred while updating the student: {str(e)}")
+            return redirect('view_student')
     return render(request, 'Hod/edit_student.html')
 
 @login_required(login_url='/')
@@ -205,6 +227,7 @@ def ADD_STAFF(request):
     subjects = Subject.objects.all()
     courses = Course.objects.all()
     if request.method == "POST":
+        logger.info("Received POST request to add staff")
         profile_pic = request.FILES.get('profile_pic')
         first_name = request.POST.get('first_name')
         last_name = request.POST.get('last_name')
@@ -224,31 +247,40 @@ def ADD_STAFF(request):
         if subject_id and Staff.objects.filter(subjects__id=subject_id).exists():
             messages.error(request, 'This subject is already assigned to another staff member.')
             return redirect('add_staff')
-        user = CustomUser(
-            first_name=first_name,
-            last_name=last_name,
-            email=email,
-            username=username,
-            profile_pic=profile_pic,
-            user_type=2
-        )
-        user.set_password(password)
-        user.save()
-        staff = Staff(
-            admin=user,
-            address=address,
-            gender=gender
-        )
-        staff.save()
-        if subject_id:
-            try:
-                subject = Subject.objects.get(id=subject_id)
-                staff.subjects.add(subject)
-            except Subject.DoesNotExist:
-                messages.error(request, f"Subject with ID {subject_id} does not exist.")
-                return redirect('add_staff')
-        messages.success(request, 'Staff Successfully Added!')
-        return redirect('add_staff')
+        try:
+            user = CustomUser(
+                first_name=first_name,
+                last_name=last_name,
+                email=email,
+                username=username,
+                profile_pic=profile_pic,
+                user_type=2
+            )
+            user.set_password(password)
+            user.save()
+            logger.info(f"User {username} saved successfully")
+            staff = Staff(
+                admin=user,
+                address=address,
+                gender=gender
+            )
+            staff.save()
+            if subject_id:
+                try:
+                    subject = Subject.objects.get(id=subject_id)
+                    staff.subjects.add(subject)
+                except Subject.DoesNotExist:
+                    messages.error(request, f"Subject with ID {subject_id} does not exist.")
+                    return redirect('add_staff')
+            logger.info(f"Staff {first_name} saved successfully")
+            if profile_pic:
+                logger.info(f"Profile picture uploaded for {username}: {user.profile_pic.url}")
+            messages.success(request, 'Staff Successfully Added!')
+            return redirect('add_staff')
+        except Exception as e:
+            logger.error(f"Error adding staff: {str(e)}", exc_info=True)
+            messages.error(request, f"An error occurred while adding the staff: {str(e)}")
+            return redirect('add_staff')
     context = {
         'subjects': subjects,
         'courses': courses,
@@ -278,6 +310,7 @@ def EDIT_STAFF(request, id):
 @login_required(login_url='/')
 def UPDATE_STAFF(request):
     if request.method == "POST":
+        logger.info("Received POST request to update staff")
         staff_id = request.POST.get('staff_id')
         profile_pic = request.FILES.get('profile_pic')
         first_name = request.POST.get('first_name')
@@ -289,35 +322,45 @@ def UPDATE_STAFF(request):
         gender = request.POST.get('gender')
         course_id = request.POST.get('course_id')
         subject_id = request.POST.get('subject_id')
-        user = CustomUser.objects.get(id=staff_id)
-        user.username = username
-        user.first_name = first_name
-        user.last_name = last_name
-        user.email = email
-        if password and password.strip():
-            user.set_password(password)
-        if profile_pic:
-            user.profile_pic = profile_pic
-        user.save()
-        staff = Staff.objects.get(admin=staff_id)
-        staff.gender = gender
-        staff.address = address
-        if subject_id:
-            existing_staff = Staff.objects.filter(subjects__id=subject_id).exclude(id=staff.id)
-            if existing_staff.exists():
-                messages.error(request, 'This subject is already assigned to another staff member.')
-                return redirect('edit_staff', id=staff.id)
-        staff.subjects.clear()
-        if subject_id:
-            try:
-                subject = Subject.objects.get(id=subject_id)
-                staff.subjects.add(subject)
-            except Subject.DoesNotExist:
-                messages.error(request, f"Subject with ID {subject_id} does not exist.")
-                return redirect('edit_staff', id=staff.id)
-        staff.save()
-        messages.success(request, 'Staff Successfully Updated')
-        return redirect('view_staff')
+        try:
+            user = CustomUser.objects.get(id=staff_id)
+            user.username = username
+            user.first_name = first_name
+            user.last_name = last_name
+            user.email = email
+            if password and password.strip():
+                user.set_password(password)
+            if profile_pic:
+                logger.info(f"Updating profile picture for {username}")
+                user.profile_pic = profile_pic
+            user.save()
+            logger.info(f"User {username} updated successfully")
+            staff = Staff.objects.get(admin=staff_id)
+            staff.gender = gender
+            staff.address = address
+            if subject_id:
+                existing_staff = Staff.objects.filter(subjects__id=subject_id).exclude(id=staff.id)
+                if existing_staff.exists():
+                    messages.error(request, 'This subject is already assigned to another staff member.')
+                    return redirect('edit_staff', id=staff.id)
+            staff.subjects.clear()
+            if subject_id:
+                try:
+                    subject = Subject.objects.get(id=subject_id)
+                    staff.subjects.add(subject)
+                except Subject.DoesNotExist:
+                    messages.error(request, f"Subject with ID {subject_id} does not exist.")
+                    return redirect('edit_staff', id=staff.id)
+            staff.save()
+            logger.info(f"Staff {first_name} updated successfully")
+            if profile_pic:
+                logger.info(f"Profile picture updated for {username}: {user.profile_pic.url}")
+            messages.success(request, 'Staff Successfully Updated')
+            return redirect('view_staff')
+        except Exception as e:
+            logger.error(f"Error updating staff: {str(e)}", exc_info=True)
+            messages.error(request, f"An error occurred while updating the staff: {str(e)}")
+            return redirect('view_staff')
     return render(request, 'Hod/edit_staff.html')
 
 @login_required(login_url='/')
@@ -331,6 +374,7 @@ def DELETE_STAFF(request, admin):
 def ADD_PARENT(request):
     students = Student.objects.all()
     if request.method == "POST":
+        logger.info("Received POST request to add parent")
         profile_pic = request.FILES.get('profile_pic')
         first_name = request.POST.get('first_name')
         last_name = request.POST.get('last_name')
@@ -347,27 +391,36 @@ def ADD_PARENT(request):
         if CustomUser.objects.filter(username=username).exists():
             messages.warning(request, 'Username Is Already Taken!')
             return redirect('add_parent')
-        user = CustomUser(
-            first_name=first_name,
-            last_name=last_name,
-            email=email,
-            username=username,
-            profile_pic=profile_pic,
-            user_type=4
-        )
-        user.set_password(password)
-        user.save()
-        student = Student.objects.get(id=student_id)
-        parent = Parent(
-            admin=user,
-            student=student,
-            relationship=relationship,
-            phone_number=phone_number,
-            address=address
-        )
-        parent.save()
-        messages.success(request, 'Parent Added Successfully!')
-        return redirect('add_parent')
+        try:
+            user = CustomUser(
+                first_name=first_name,
+                last_name=last_name,
+                email=email,
+                username=username,
+                profile_pic=profile_pic,
+                user_type=4
+            )
+            user.set_password(password)
+            user.save()
+            logger.info(f"User {username} saved successfully")
+            student = Student.objects.get(id=student_id)
+            parent = Parent(
+                admin=user,
+                student=student,
+                relationship=relationship,
+                phone_number=phone_number,
+                address=address
+            )
+            parent.save()
+            logger.info(f"Parent {first_name} saved successfully")
+            if profile_pic:
+                logger.info(f"Profile picture uploaded for {username}: {user.profile_pic.url}")
+            messages.success(request, 'Parent Added Successfully!')
+            return redirect('add_parent')
+        except Exception as e:
+            logger.error(f"Error adding parent: {str(e)}", exc_info=True)
+            messages.error(request, f"An error occurred while adding the parent: {str(e)}")
+            return redirect('add_parent')
     context = {
         'students': students,
     }
@@ -394,6 +447,7 @@ def EDIT_PARENT(request, id):
 @login_required(login_url='/')
 def UPDATE_PARENT(request):
     if request.method == "POST":
+        logger.info("Received POST request to update parent")
         parent_id = request.POST.get('parent_id')
         profile_pic = request.FILES.get('profile_pic')
         first_name = request.POST.get('first_name')
@@ -405,25 +459,35 @@ def UPDATE_PARENT(request):
         relationship = request.POST.get('relationship')
         phone_number = request.POST.get('phone_number')
         address = request.POST.get('address')
-        user = CustomUser.objects.get(id=parent_id)
-        user.first_name = first_name
-        user.last_name = last_name
-        user.email = email
-        user.username = username
-        if password and password.strip():
-            user.set_password(password)
-        if profile_pic:
-            user.profile_pic = profile_pic
-        user.save()
-        parent = Parent.objects.get(admin=parent_id)
-        student = Student.objects.get(id=student_id)
-        parent.student = student
-        parent.relationship = relationship
-        parent.phone_number = phone_number
-        parent.address = address
-        parent.save()
-        messages.success(request, 'Parent Updated Successfully!')
-        return redirect('view_parent')
+        try:
+            user = CustomUser.objects.get(id=parent_id)
+            user.first_name = first_name
+            user.last_name = last_name
+            user.email = email
+            user.username = username
+            if password and password.strip():
+                user.set_password(password)
+            if profile_pic:
+                logger.info(f"Updating profile picture for {username}")
+                user.profile_pic = profile_pic
+            user.save()
+            logger.info(f"User {username} updated successfully")
+            parent = Parent.objects.get(admin=parent_id)
+            student = Student.objects.get(id=student_id)
+            parent.student = student
+            parent.relationship = relationship
+            parent.phone_number = phone_number
+            parent.address = address
+            parent.save()
+            logger.info(f"Parent {first_name} updated successfully")
+            if profile_pic:
+                logger.info(f"Profile picture updated for {username}: {user.profile_pic.url}")
+            messages.success(request, 'Parent Updated Successfully!')
+            return redirect('view_parent')
+        except Exception as e:
+            logger.error(f"Error updating parent: {str(e)}", exc_info=True)
+            messages.error(request, f"An error occurred while updating the parent: {str(e)}")
+            return redirect('view_parent')
     return render(request, 'Hod/edit_parent.html')
 
 @login_required(login_url='/')
