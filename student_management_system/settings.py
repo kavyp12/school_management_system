@@ -123,7 +123,6 @@
 
 
 # AUTH_USER_MODEL = 'app.CustomUser'
-
 import os
 from pathlib import Path
 from decouple import config
@@ -136,6 +135,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Log storage backend for debugging
+logger.info(f"DEFAULT_FILE_STORAGE is set to: {os.getenv('DEFAULT_FILE_STORAGE', 'app.storage.VercelBlobStorage')}")
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = config('DJANGO_SECRET_KEY')
@@ -221,7 +223,6 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 # Media files (for profile_pic)
 DEFAULT_FILE_STORAGE = 'app.storage.VercelBlobStorage'
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # Fallback for local development
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
