@@ -14,7 +14,7 @@ class VercelBlobStorage(Storage):
         self.token = os.getenv('BLOB_READ_WRITE_TOKEN')
         if not self.token:
             raise ImproperlyConfigured("BLOB_READ_WRITE_TOKEN environment variable is not set.")
-        self.base_url = 'https://your-blob-store.public.blob.vercel-storage.com'  # Replace with your Vercel Blob store URL
+        self.base_url = 'https://hg2cdq8jxv2osfar.public.blob.vercel-storage.com'  # Your Vercel Blob store URL
         self.folder = 'profile_pics'  # Folder for profile pictures
 
     def _save(self, name, content):
